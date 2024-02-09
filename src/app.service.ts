@@ -18,11 +18,11 @@ export class AppService {
 
   constructor() {
     this.pool = new Pool({
-      host: 'localhost',
-      user: 'admin',
-      password: '123',
-      database: 'rinha',
-      max: 20,
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASS,
+      database: process.env.DB_DATABASE,
+      max: 25,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 2000,
     });
@@ -77,29 +77,40 @@ export class AppService {
   ): Promise<StatementResponseDto> {
     const { rows: statement } = await this.pool.query<CustomerStatement>(
       `
-      SELECT s.valor as total, c.limite as limite, t.valor, t.tipo, t.descricao, t.realizada_em 
-      FROM saldos s 
-      INNER JOIN clientes c ON c.id = s.cliente_id
-      INNER JOIN transacoes t ON t.cliente_id = s.cliente_id
-      WHERE s.cliente_id = $1
+      SELECT 
+        s.valor as total, 
+        c.limite as limite, 
+        t.valor, 
+        t.tipo, 
+        t.descricao, 
+        t.realizada_em 
+      FROM clientes c 
+      LEFT JOIN saldos s ON c.id = s.cliente_id
+      LEFT JOIN transacoes t ON c.id = t.cliente_id
+      WHERE c.id = $1
       order by t.realizada_em desc
-      limit 10      
+      limit 10     
       `,
       [customerId],
     );
 
+    if (!statement.length) throw new NotFoundException('Cliente not found');
+
     return {
       saldo: {
-        total: statement[0].valor,
+        total: statement[0].total,
         limite: statement[0].limite,
         data_extrato: new Date(),
       },
-      ultimas_transacoes: statement.map((stt) => ({
-        valor: stt.valor,
-        tipo: stt.tipo,
-        descricao: stt.descricao,
-        realizada_em: stt.realizada_em,
-      })),
+      ultimas_transacoes:
+        statement[0].valor !== null
+          ? statement.map((stt) => ({
+              valor: stt.valor,
+              tipo: stt.tipo,
+              descricao: stt.descricao,
+              realizada_em: stt.realizada_em,
+            }))
+          : [],
     };
   }
 
