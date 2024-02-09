@@ -39,7 +39,7 @@ export class AppService {
         SELECT * 
         FROM saldos s 
         INNER JOIN clientes c ON c.id = s.cliente_id 
-        WHERE s.liente_id = $1
+        WHERE s.cliente_id = $1
       `,
       [customerId],
     );
