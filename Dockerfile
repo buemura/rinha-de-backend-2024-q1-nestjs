@@ -6,8 +6,9 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 COPY .env ./
 
-RUN npm ci --only=production
-COPY dist ./dist
+RUN npm install
+COPY . .
+RUN npm run build
 
 EXPOSE 8080
 CMD ["npm", "run", "start:prod"]

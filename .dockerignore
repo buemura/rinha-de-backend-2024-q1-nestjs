@@ -1,0 +1,15 @@
+.git/
+node_modules/
+dist/
+test/
+load-test/
+
+Dockerfile
+docker-compose.yml
+nginx.conf
+README.md
+init.sql
+.gitignore
+.prettierrc
+.eslintrc.js
+.dockerignore
