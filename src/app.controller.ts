@@ -24,7 +24,6 @@ export class AppController {
 
   @Post(':id/transacoes')
   @HttpCode(HttpStatus.OK)
-  @UsePipes(new ValidationPipe({ whitelist: true }))
   async createTransaction(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: CreateTransactionRequestDto,

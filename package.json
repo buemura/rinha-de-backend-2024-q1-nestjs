@@ -26,6 +26,7 @@
     "@nestjs/config": "^3.2.0",
     "@nestjs/core": "^9.0.0",
     "@nestjs/platform-express": "^9.0.0",
+    "@nestjs/platform-fastify": "^9.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "drizzle-orm": "^0.29.3",
