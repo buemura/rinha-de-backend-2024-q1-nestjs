@@ -3,17 +3,18 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { Client, Pool } from 'pg';
 import { sql } from 'drizzle-orm';
 import { NodePgDatabase, drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
 
+import { StatementResponseDto } from './dtos/statement.dto';
 import {
   CreateTransactionRequestDto,
   CreateTransactionResponseDto,
+  Transaction,
 } from './dtos/transaction.dto';
 import { TransactionTypeEnum } from './enums/transaction-type.enum';
-import { StatementResponseDto } from './dtos/statement.dto';
-import { CustomerBalance, CustomerStatement } from './interfaces/customer';
+import { Customer } from './interfaces/customer';
 
 @Injectable()
 export class AppService {
@@ -31,42 +32,46 @@ export class AppService {
   async getCustomerStatement(
     customerId: number,
   ): Promise<StatementResponseDto> {
-    const { rows: statement } = await this.pool.query<CustomerStatement>(
+    const {
+      rows: [customerBalance],
+    } = await this.pool.query<Customer>(
+      `
+      SELECT c.id, c.nome, c.limite, s.valor AS saldo
+			FROM clientes c
+			INNER JOIN saldos s ON c.id = s.cliente_id
+			WHERE c.id = $1
+      `,
+      [customerId],
+    );
+    if (!customerBalance) throw new NotFoundException('Cliente not found');
+
+    const { rows: transacoes } = await this.pool.query<Transaction>(
       `
       SELECT
-        s.valor as total,
-        c.limite as limite,
-        t.valor,
-        t.tipo,
-        t.descricao,
-        t.realizada_em
-      FROM clientes c
-      LEFT JOIN saldos s ON c.id = s.cliente_id
-      LEFT JOIN transacoes t ON c.id = t.cliente_id
-      WHERE c.id = $1
-      order by t.realizada_em desc
+        valor,
+        tipo,
+        descricao,
+        realizada_em
+      FROM transacoes
+      WHERE cliente_id = $1
+      order by realizada_em desc
       limit 10
       `,
       [customerId],
     );
 
-    if (!statement.length) throw new NotFoundException('Cliente not found');
-
     return {
       saldo: {
-        total: statement[0].total,
-        limite: statement[0].limite,
+        total: customerBalance.saldo,
+        limite: customerBalance.limite,
         data_extrato: new Date(),
       },
-      ultimas_transacoes:
-        statement[0].valor !== null
-          ? statement.map((stt) => ({
-              valor: stt.valor,
-              tipo: stt.tipo,
-              descricao: stt.descricao,
-              realizada_em: stt.realizada_em,
-            }))
-          : [],
+      ultimas_transacoes: transacoes.map((trx) => ({
+        valor: trx.valor,
+        tipo: trx.tipo,
+        descricao: trx.descricao,
+        realizada_em: trx.realizada_em,
+      })),
     };
   }
 
@@ -75,27 +80,23 @@ export class AppService {
     input: CreateTransactionRequestDto,
   ): Promise<CreateTransactionResponseDto> {
     const {
-      rows: [customerBalance],
-    } = await this.pool.query<CustomerBalance>(
+      rows: [customer],
+    } = await this.pool.query<Customer>(
       `
-        SELECT *
-        FROM saldos s
-        INNER JOIN clientes c ON c.id = s.cliente_id
-        WHERE s.cliente_id = $1
+      SELECT c.id, c.nome, c.limite, s.valor AS saldo
+			FROM clientes c
+			INNER JOIN saldos s ON c.id = s.cliente_id
+			WHERE c.id = $1
       `,
       [customerId],
     );
 
-    if (!customerBalance) throw new NotFoundException('Cliente not found');
+    if (!customer) throw new NotFoundException('Cliente not found');
 
     const balance =
       input.tipo === TransactionTypeEnum.DEBIT
-        ? this.debitTransaction(
-            input.valor,
-            customerBalance.valor,
-            customerBalance.limite,
-          )
-        : this.creditTransaction(input.valor, customerBalance.valor);
+        ? this.debitTransaction(input.valor, customer.saldo, customer.limite)
+        : this.creditTransaction(input.valor, customer.saldo);
 
     await this.db.transaction(async (tx) => {
       await tx.execute(
@@ -109,7 +110,7 @@ export class AppService {
     });
 
     return {
-      limite: customerBalance.limite,
+      limite: customer.limite,
       saldo: balance,
     };
   }

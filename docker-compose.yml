@@ -11,8 +11,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.45'
-          memory: '200MB'
+          cpus: '0.3'
+          memory: '140MB'
 
   api02:
     <<: *api
@@ -30,8 +30,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.15'
-          memory: '10MB'
+          cpus: '0.2'
+          memory: '20MB'
 
   db:
     image: postgres:latest
@@ -48,8 +48,9 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.45'
-          memory: '140MB'
+          cpus: '0.7'
+          memory: '250MB'
+
 networks:
   default:
     driver: bridge
