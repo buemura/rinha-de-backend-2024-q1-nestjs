@@ -42,5 +42,5 @@ npm run start:dev
 
 ## Result
 
-- Tested machine: Virtual Machine - Linux Ubuntu 22.04.3 LTS 64-bit | 16GB RAM | AMD® Ryzen 5 5600 6-core processor × 4 
+- Tested machine specs: Virtual Machine - Linux Ubuntu 22.04.3 LTS 64-bit | 8GB RAM | 4-core - AMD® Ryzen 5 5600 6-core processor
 ![Result](.docs/result.png)
