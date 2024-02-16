@@ -1,5 +1,7 @@
 import {
+  HttpException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
@@ -15,6 +17,12 @@ import {
 } from './dtos/transaction.dto';
 import { TransactionTypeEnum } from './enums/transaction-type.enum';
 import { Customer } from './interfaces/customer';
+
+type Balance = {
+  id: number;
+  cliente_id: number;
+  valor: number;
+};
 
 @Injectable()
 export class AppService {
@@ -79,9 +87,11 @@ export class AppService {
     customerId: number,
     input: CreateTransactionRequestDto,
   ): Promise<CreateTransactionResponseDto> {
+    const client = await this.pool.connect();
+
     const {
       rows: [customer],
-    } = await this.pool.query<Customer>(
+    } = await client.query<Customer>(
       `
       SELECT c.id, c.nome, c.limite, s.valor AS saldo
 			FROM clientes c
@@ -93,46 +103,57 @@ export class AppService {
 
     if (!customer) throw new NotFoundException('Cliente not found');
 
-    const balance =
-      input.tipo === TransactionTypeEnum.DEBIT
-        ? this.debitTransaction(input.valor, customer.saldo, customer.limite)
-        : this.creditTransaction(input.valor, customer.saldo);
+    try {
+      await client.query('BEGIN');
 
-    await this.db.transaction(async (tx) => {
-      await tx.execute(
-        sql`INSERT INTO transacoes (cliente_id, valor, tipo, descricao, realizada_em) VALUES (${customerId}, ${
-          input.valor
-        }, ${input.tipo}, ${input.descricao}, ${new Date()})`,
+      const {
+        rows: [customerBalnce],
+      } = await client.query<Balance>(
+        `
+        SELECT id, cliente_id, valor
+        FROM saldos
+        WHERE cliente_id = $1
+        FOR UPDATE
+        `,
+        [customerId],
       );
-      await tx.execute(
-        sql`UPDATE saldos SET valor = ${balance} WHERE cliente_id = ${customerId}`,
+
+      let balance = customerBalnce.valor;
+
+      if (input.tipo === TransactionTypeEnum.CREDIT) {
+        balance += input.valor;
+      }
+      if (input.tipo === TransactionTypeEnum.DEBIT) {
+        balance -= input.valor;
+      }
+      if (customer.limite + balance < 0) {
+        throw new UnprocessableEntityException(
+          'Cliente does not have enough limit',
+        );
+      }
+
+      await client.query(`UPDATE saldos SET valor = $1 WHERE cliente_id = $2`, [
+        balance,
+        customerId,
+      ]);
+
+      await client.query(
+        `INSERT INTO transacoes (cliente_id, valor, tipo, descricao, realizada_em) VALUES ($1, $2, $3, $4, $5)`,
+        [customerId, input.valor, input.tipo, input.descricao, new Date()],
       );
-    });
 
-    return {
-      limite: customer.limite,
-      saldo: balance,
-    };
-  }
+      await client.query('COMMIT');
 
-  private creditTransaction(
-    transactionAmount: number,
-    customerBalance: number,
-  ): number {
-    return customerBalance + transactionAmount;
-  }
-
-  private debitTransaction(
-    transactionAmount: number,
-    customerBalance: number,
-    customerLimit: number,
-  ): number {
-    if ((customerBalance - transactionAmount) * -1 > customerLimit) {
-      throw new UnprocessableEntityException(
-        'Cliente does not have enough limit',
-      );
+      return {
+        limite: customer.limite,
+        saldo: balance,
+      };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException();
+    } finally {
+      client.release();
     }
-
-    return customerBalance - transactionAmount;
   }
 }
