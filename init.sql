@@ -1,39 +1,39 @@
 --- TABLES
-CREATE TABLE clientes (
+CREATE TABLE customers (
 	id SERIAL PRIMARY KEY,
-	nome VARCHAR(50) NOT NULL,
-	limite INTEGER NOT NULL
+	name VARCHAR(50) NOT NULL,
+	account_limit INTEGER NOT NULL
 );
 
-CREATE TABLE transacoes (
+CREATE TABLE transactions (
 	id SERIAL PRIMARY KEY,
-	cliente_id INTEGER NOT NULL,
-	valor INTEGER NOT NULL,
-	tipo CHAR(1) NOT NULL,
-	descricao VARCHAR(10) NOT NULL,
-	realizada_em TIMESTAMP NOT NULL DEFAULT NOW(),
-	CONSTRAINT fk_clientes_transacoes_id
-		FOREIGN KEY (cliente_id) REFERENCES clientes(id)
+	customer_id INTEGER NOT NULL,
+	amount INTEGER NOT NULL,
+	type CHAR(1) NOT NULL,
+	description VARCHAR(10) NOT NULL,
+	created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+	CONSTRAINT fk_customers_transactions_id
+		FOREIGN KEY (customer_id) REFERENCES customers(id)
 );
 
-CREATE TABLE saldos (
+CREATE TABLE balances (
 	id SERIAL PRIMARY KEY,
-	cliente_id INTEGER NOT NULL,
-	valor INTEGER NOT NULL,
-	CONSTRAINT fk_clientes_saldos_id
-		FOREIGN KEY (cliente_id) REFERENCES clientes(id)
+	customer_id INTEGER NOT NULL,
+	balance INTEGER NOT NULL,
+	CONSTRAINT fk_customers_balances_id
+		FOREIGN KEY (customer_id) REFERENCES customers(id)
 );
 
 --- INDEX
-CREATE INDEX idx_clientes_id ON clientes (id);
-CREATE INDEX idx_transacoes_cliente_id ON transacoes (cliente_id);
-CREATE INDEX idx_saldos_cliente_id ON saldos (cliente_id);
-CREATE INDEX idx_transacoes_cliente_id_realizada_em ON transacoes (cliente_id, realizada_em DESC);
+CREATE INDEX idx_customers_id ON customers (id);
+CREATE INDEX idx_transactions_customer_id ON transactions (customer_id);
+CREATE INDEX idx_balances_customer_id ON balances (customer_id);
+CREATE INDEX idx_transactions_customer_id_created_at ON transactions (customer_id, created_at DESC);
 
 --- SEED
 DO $$
 BEGIN
-	INSERT INTO clientes (nome, limite)
+	INSERT INTO customers (name, account_limit)
 	VALUES
 		('o barato sai caro', 1000 * 100),
 		('zan corp ltda', 800 * 100),
@@ -41,7 +41,7 @@ BEGIN
 		('padaria joia de cocaia', 100000 * 100),
 		('kid mais', 5000 * 100);
 	
-	INSERT INTO saldos (cliente_id, valor)
-		SELECT id, 0 FROM clientes;
+	INSERT INTO balances (customer_id, balance)
+		SELECT id, 0 FROM customers;
 END;
 $$;

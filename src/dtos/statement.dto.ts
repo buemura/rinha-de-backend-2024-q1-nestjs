@@ -1,3 +1,4 @@
+import { TransactionTypeEnum } from 'src/enums/transaction-type.enum';
 import { Transaction } from './transaction.dto';
 
 class Balance {
@@ -6,7 +7,14 @@ class Balance {
   limite: number;
 }
 
+export class StatementTransactionsReponseDto {
+  valor: number;
+  tipo: TransactionTypeEnum;
+  descricao: string;
+  realizada_em: Date;
+}
+
 export class StatementResponseDto {
   saldo: Balance;
-  ultimas_transacoes: Transaction[];
+  ultimas_transacoes: StatementTransactionsReponseDto[];
 }

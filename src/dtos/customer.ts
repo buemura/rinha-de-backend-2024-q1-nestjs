@@ -1,13 +1,13 @@
 import { TransactionTypeEnum } from 'src/enums/transaction-type.enum';
 
-export interface Customer {
+export class Customer {
   id: number;
-  nome: string;
-  limite: number;
-  saldo: number;
+  name: string;
+  account_limit: number;
+  balance: number;
 }
 
-export interface CustomerStatement {
+export class CustomerStatement {
   total: number;
   limite: number;
   valor: number;

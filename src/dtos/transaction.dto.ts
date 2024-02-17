@@ -10,10 +10,10 @@ import {
 import { TransactionTypeEnum } from 'src/enums/transaction-type.enum';
 
 export class Transaction {
-  valor: number;
-  tipo: TransactionTypeEnum;
-  descricao: string;
-  realizada_em: Date;
+  amount: number;
+  type: TransactionTypeEnum;
+  description: string;
+  created_at: Date;
 }
 
 export class CreateTransactionRequestDto {
