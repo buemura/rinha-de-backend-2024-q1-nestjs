@@ -7,7 +7,7 @@ import {
   MinLength,
 } from 'class-validator';
 
-import { TransactionTypeEnum } from 'src/enums/transaction-type.enum';
+import { TransactionTypeEnum } from '../enums';
 
 export class Transaction {
   amount: number;

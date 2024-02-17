@@ -1,11 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-
-import { StatementController } from './controllers/statement.controller';
-import { TransactionController } from './controllers/transaction.controller';
-import { StatementService } from './services/statement.service';
-import { TransactionService } from './services/transaction.service';
 import { Pool } from 'pg';
+
+import { StatementController, TransactionController } from './controllers';
+import { StatementService, TransactionService } from './services';
 
 @Module({
   imports: [

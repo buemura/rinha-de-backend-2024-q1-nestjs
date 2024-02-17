@@ -7,13 +7,13 @@ import {
 } from '@nestjs/common';
 import { Pool } from 'pg';
 
-import { Balance } from '../dtos/balance';
 import {
+  Balance,
   CreateTransactionRequestDto,
   CreateTransactionResponseDto,
-} from '../dtos/transaction.dto';
+  Customer,
+} from '../dtos';
 import { TransactionTypeEnum } from '../enums/transaction-type.enum';
-import { Customer } from '../dtos/customer';
 
 @Injectable()
 export class TransactionService {
@@ -79,15 +79,11 @@ export class TransactionService {
 
       await client.query('COMMIT');
 
-      console.log(customer);
-
       return {
         limite: customer.account_limit ?? 0,
         saldo: balance,
       };
     } catch (error) {
-      console.log(error);
-
       await client.query('ROLLBACK');
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException();

@@ -1,9 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Pool } from 'pg';
 
-import { StatementResponseDto } from '../dtos/statement.dto';
-import { Transaction } from '../dtos/transaction.dto';
-import { Customer } from '../dtos/customer';
+import { Customer, StatementResponseDto, Transaction } from '../dtos';
 
 @Injectable()
 export class StatementService {
@@ -25,7 +23,7 @@ export class StatementService {
     );
     if (!customer) throw new NotFoundException('Customer not found');
 
-    const { rows: transacoes } = await this.pool.query<Transaction>(
+    const { rows: transactions } = await this.pool.query<Transaction>(
       `
         SELECT
           amount,
@@ -46,7 +44,7 @@ export class StatementService {
         limite: customer.account_limit,
         data_extrato: new Date(),
       },
-      ultimas_transacoes: transacoes.map((trx) => ({
+      ultimas_transacoes: transactions.map((trx) => ({
         valor: trx.amount,
         tipo: trx.type,
         descricao: trx.description,

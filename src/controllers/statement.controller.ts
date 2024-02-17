@@ -1,7 +1,7 @@
 import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
 
-import { StatementService } from '../services/statement.service';
-import { StatementResponseDto } from '../dtos/statement.dto';
+import { StatementResponseDto } from '../dtos';
+import { StatementService } from '../services';
 
 @Controller('clientes')
 export class StatementController {

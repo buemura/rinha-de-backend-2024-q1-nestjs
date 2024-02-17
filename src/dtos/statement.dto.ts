@@ -1,5 +1,4 @@
-import { TransactionTypeEnum } from 'src/enums/transaction-type.enum';
-import { Transaction } from './transaction.dto';
+import { TransactionTypeEnum } from '../enums';
 
 class Balance {
   total: number;

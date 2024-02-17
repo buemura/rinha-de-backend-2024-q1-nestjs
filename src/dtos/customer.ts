@@ -1,4 +1,4 @@
-import { TransactionTypeEnum } from 'src/enums/transaction-type.enum';
+import { TransactionTypeEnum } from '../enums';
 
 export class Customer {
   id: number;

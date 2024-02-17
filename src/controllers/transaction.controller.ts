@@ -8,11 +8,11 @@ import {
   Post,
 } from '@nestjs/common';
 
-import { TransactionService } from '../services/transaction.service';
 import {
   CreateTransactionRequestDto,
   CreateTransactionResponseDto,
-} from '../dtos/transaction.dto';
+} from '../dtos';
+import { TransactionService } from '../services';
 
 @Controller('clientes')
 export class TransactionController {
