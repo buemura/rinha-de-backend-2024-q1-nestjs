@@ -11,7 +11,6 @@ import {
   Balance,
   CreateTransactionRequestDto,
   CreateTransactionResponseDto,
-  Customer,
 } from '../dtos';
 import { TransactionTypeEnum } from '../enums/transaction-type.enum';
 
@@ -25,19 +24,6 @@ export class TransactionService {
   ): Promise<CreateTransactionResponseDto> {
     const client = await this.pool.connect();
 
-    const {
-      rows: [customer],
-    } = await client.query<Customer>(
-      `
-        SELECT c.id, c.name, c.account_limit, s.balance AS balance
-        FROM customers c
-        INNER JOIN balances s ON c.id = s.customer_id
-        WHERE c.id = $1
-      `,
-      [customerId],
-    );
-    if (!customer) throw new NotFoundException('Cliente not found');
-
     try {
       await client.query('BEGIN');
 
@@ -45,23 +31,20 @@ export class TransactionService {
         rows: [customerBalnce],
       } = await client.query<Balance>(
         `
-          SELECT id, customer_id, balance
-          FROM balances
+          SELECT b.id, b.customer_id, b.balance, c.account_limit
+          FROM balances b
+          INNER JOIN customers c ON b.customer_id = c.id
           WHERE customer_id = $1
           FOR UPDATE
           `,
         [customerId],
       );
+      if (!customerBalnce) throw new NotFoundException('Cliente not found');
 
       let balance = customerBalnce.balance;
-
-      if (input.tipo === TransactionTypeEnum.CREDIT) {
-        balance += input.valor;
-      }
-      if (input.tipo === TransactionTypeEnum.DEBIT) {
-        balance -= input.valor;
-      }
-      if (customer.account_limit + balance < 0) {
+      if (input.tipo === TransactionTypeEnum.CREDIT) balance += input.valor;
+      if (input.tipo === TransactionTypeEnum.DEBIT) balance -= input.valor;
+      if (customerBalnce.account_limit + balance < 0) {
         throw new UnprocessableEntityException(
           'Cliente does not have enough limit',
         );
@@ -71,16 +54,14 @@ export class TransactionService {
         `UPDATE balances SET balance = $1 WHERE customer_id = $2`,
         [balance, customerId],
       );
-
       await client.query(
         `INSERT INTO transactions (customer_id, amount, type, description, created_at) VALUES ($1, $2, $3, $4, $5)`,
         [customerId, input.valor, input.tipo, input.descricao, new Date()],
       );
-
       await client.query('COMMIT');
 
       return {
-        limite: customer.account_limit ?? 0,
+        limite: customerBalnce.account_limit ?? 0,
         saldo: balance,
       };
     } catch (error) {
