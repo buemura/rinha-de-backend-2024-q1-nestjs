@@ -12,7 +12,7 @@ import {
   CreateTransactionRequestDto,
   CreateTransactionResponseDto,
 } from '../dtos';
-import { TransactionTypeEnum } from '../enums/transaction-type.enum';
+import { TransactionTypeEnum } from '../enums';
 
 @Injectable()
 export class TransactionService {

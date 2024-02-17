@@ -7,10 +7,8 @@
 - Node
 - NestJS
 - pg
-- drizzle ORM
 - PostgreSQL
 - NGINX
-- Docker
 
 ## How to run
 
@@ -43,4 +41,4 @@ npm run start:dev
 ## Result
 
 - Tested machine specs: Virtual Machine - Linux Ubuntu 22.04.3 LTS 64-bit | 8GB RAM | 4-core - AMD® Ryzen 5 5600 6-core processor
-![Result](.docs/result.png)
+  ![Result](.docs/result.png)
