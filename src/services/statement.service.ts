@@ -14,10 +14,9 @@ export class StatementService {
       rows: [customer],
     } = await this.pool.query<Customer>(
       `
-        SELECT c.id, c.name, c.account_limit, s.balance AS balance
-        FROM customers c
-        INNER JOIN balances s ON c.id = s.customer_id
-        WHERE c.id = $1
+      SELECT account_limit, account_balance
+      FROM customers
+      WHERE id = $1
       `,
       [customerId],
     );
@@ -25,22 +24,22 @@ export class StatementService {
 
     const { rows: transactions } = await this.pool.query<Transaction>(
       `
-        SELECT
-          amount,
-          type,
-          description,
-          created_at
-        FROM transactions
-        WHERE customer_id = $1
-        ORDER BY created_at DESC
-        LIMIT 10
-        `,
+      SELECT
+        amount,
+        type,
+        description,
+        created_at
+      FROM transactions
+      WHERE customer_id = $1
+      ORDER BY created_at DESC
+      LIMIT 10
+      `,
       [customerId],
     );
 
     return {
       saldo: {
-        total: customer.balance,
+        total: customer.account_balance,
         limite: customer.account_limit,
         data_extrato: new Date(),
       },

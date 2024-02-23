@@ -2,9 +2,8 @@ import { TransactionTypeEnum } from '../enums';
 
 export class Customer {
   id: number;
-  name: string;
   account_limit: number;
-  balance: number;
+  account_balance: number;
 }
 
 export class CustomerStatement {

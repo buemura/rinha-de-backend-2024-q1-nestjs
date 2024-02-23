@@ -8,17 +8,41 @@ import {
 import { Pool } from 'pg';
 
 import {
-  Balance,
   CreateTransactionRequestDto,
   CreateTransactionResponseDto,
+  Customer,
 } from '../dtos';
-import { TransactionTypeEnum } from '../enums';
 
 @Injectable()
 export class TransactionService {
   constructor(private readonly pool: Pool) {}
 
-  async createTransaction(
+  async createCreditTransaction(
+    customerId: number,
+    input: CreateTransactionRequestDto,
+  ): Promise<CreateTransactionResponseDto> {
+    const {
+      rows: [customer],
+    } = await this.pool.query<Customer>(
+      `
+      UPDATE customers
+      SET account_balance = account_balance + $1 
+      WHERE id = $2
+      RETURNING account_limit, account_balance
+      `,
+      [input.valor, customerId],
+    );
+    await this.pool.query(
+      `INSERT INTO transactions (customer_id, amount, type, description, created_at) VALUES ($1, $2, $3, $4, $5)`,
+      [customerId, input.valor, input.tipo, input.descricao, new Date()],
+    );
+    return {
+      limite: customer.account_limit,
+      saldo: customer.account_balance,
+    };
+  }
+
+  async createDebitTransaction(
     customerId: number,
     input: CreateTransactionRequestDto,
   ): Promise<CreateTransactionResponseDto> {
@@ -28,30 +52,25 @@ export class TransactionService {
       await client.query('BEGIN');
 
       const {
-        rows: [customerBalnce],
-      } = await client.query<Balance>(
+        rows: [customer],
+      } = await client.query<Customer>(
         `
-          SELECT b.id, b.customer_id, b.balance, c.account_limit
-          FROM balances b
-          INNER JOIN customers c ON b.customer_id = c.id
-          WHERE customer_id = $1
-          FOR UPDATE
-          `,
+        SELECT id, account_limit, account_balance
+        FROM customers
+        WHERE id = $1
+        FOR UPDATE
+        `,
         [customerId],
       );
-      if (!customerBalnce) throw new NotFoundException('Cliente not found');
+      if (!customer) throw new NotFoundException('Cliente not found');
 
-      let balance = customerBalnce.balance;
-      if (input.tipo === TransactionTypeEnum.CREDIT) balance += input.valor;
-      if (input.tipo === TransactionTypeEnum.DEBIT) balance -= input.valor;
-      if (customerBalnce.account_limit + balance < 0) {
-        throw new UnprocessableEntityException(
-          'Cliente does not have enough limit',
-        );
+      const balance = customer.account_balance - input.valor;
+      if (customer.account_limit + balance < 0) {
+        throw new UnprocessableEntityException();
       }
 
       await client.query(
-        `UPDATE balances SET balance = $1 WHERE customer_id = $2`,
+        `UPDATE customers SET account_balance = $1 WHERE id = $2`,
         [balance, customerId],
       );
       await client.query(
@@ -61,7 +80,7 @@ export class TransactionService {
       await client.query('COMMIT');
 
       return {
-        limite: customerBalnce.account_limit ?? 0,
+        limite: customer.account_limit,
         saldo: balance,
       };
     } catch (error) {

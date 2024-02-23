@@ -12,6 +12,7 @@ import {
   CreateTransactionRequestDto,
   CreateTransactionResponseDto,
 } from '../dtos';
+import { TransactionTypeEnum } from '../enums';
 import { TransactionService } from '../services';
 
 @Controller('clientes')
@@ -24,6 +25,9 @@ export class TransactionController {
     @Param('id', ParseIntPipe) id: number,
     @Body() body: CreateTransactionRequestDto,
   ): Promise<CreateTransactionResponseDto> {
-    return this.transactionService.createTransaction(id, body);
+    if (body.tipo === TransactionTypeEnum.CREDIT) {
+      return this.transactionService.createCreditTransaction(id, body);
+    }
+    return this.transactionService.createDebitTransaction(id, body);
   }
 }
